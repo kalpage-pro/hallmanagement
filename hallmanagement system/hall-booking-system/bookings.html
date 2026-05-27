@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bookings — Hall Booking System</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <h1>Bookings</h1>
+    <nav>
+      <a href="halls.html">Halls</a>
+      <a href="index.html" id="logoutBtn" onclick="logout(); return false;">Logout</a>
+    </nav>
+  </header>
+  <div id="globalMessageContainer"></div>
+  <main class="container">
+    <section class="card">
+      <h2>Booking Management</h2>
+      <p class="muted">Bookings load automatically after login.</p>
+
+      <div class="grid">
+        <div>
+          <label for="bookingId">Booking ID</label>
+          <input type="text" id="bookingId" placeholder="Booking UUID" />
+
+          <label for="reservedDate">Reserved date</label>
+          <input type="date" id="reservedDate" />
+
+          <label for="startTime">Start time</label>
+          <input type="time" id="startTime" />
+
+          <label for="endTime">End time</label>
+          <input type="time" id="endTime" />
+
+          <label for="bookingFor">Booking for</label>
+          <input type="text" id="bookingFor" placeholder="Purpose / event name" />
+
+          <label for="participants">Expected participants</label>
+          <input type="number" id="participants" placeholder="Number of participants" />
+
+          <label for="requirements">Special requirements</label>
+          <input type="text" id="requirements" placeholder="Special requirements" />
+
+          <label for="hallId">Hall ID</label>
+          <input type="text" id="hallId" placeholder="Hall UUID" />
+
+          <label for="userId">User ID</label>
+          <input type="text" id="userId" placeholder="User UUID" />
+
+          <div class="actions">
+            <button id="createBookingBtn" type="button" onclick="createBooking()">Create Booking</button>
+            <button id="updateBookingBtn" type="button" onclick="updateBooking()">Update Booking</button>
+            <button id="loadBookingsBtn" type="button" onclick="getAllBookings()">Load All Bookings</button>
+          </div>
+        </div>
+
+        <div>
+          <label for="searchBookingId">Get booking by ID</label>
+          <input type="text" id="searchBookingId" placeholder="Booking UUID" />
+          <div class="actions">
+            <button type="button" onclick="loadBookingByIdFromField()">Get Booking</button>
+          </div>
+
+          <p class="small">Verify or cancel a booking from the table actions.</p>
+        </div>
+      </div>
+
+      <div id="bookingsList" style="margin-top: 16px;">Loading...</div>
+
+      <div style="margin-top: 16px; overflow-x: auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Booking For</th>
+              <th>Reserved Date</th>
+              <th>Start Time</th>
+              <th>Participants</th>
+            </tr>
+          </thead>
+          <tbody id="bookingsTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+  <script src="js/auth.js"></script>
+  <script src="js/bookings.js"></script>
+</body>
+</html>

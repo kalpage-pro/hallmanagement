@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hall Booking System — Login</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main class="container">
+    <h1>Hall Booking System</h1>
+    <section class="card">
+      <h2>Login</h2>
+      <p class="muted">Please login first to continue.</p>
+      <!-- Simple login inputs as requested. The button calls login() in js/auth.js -->
+      <div id="loginBox">
+        <label for="username">Username / NIC</label>
+        <input type="text" id="username" placeholder="Your NIC" autofocus />
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="Password" />
+        <div class="actions">
+          <button onclick="login()">Login</button>
+        </div>
+      </div>
+      <p id="message" class="muted"></p>
+    </section>
+  </main>
+  <script src="js/auth.js"></script>
+</body>
+</html>

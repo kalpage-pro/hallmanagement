@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Halls — Hall Booking System</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <h1>Halls</h1>
+    <nav>
+      <a href="bookings.html">Bookings</a>
+      <a href="index.html" id="logoutBtn" onclick="logout(); return false;">Logout</a>
+    </nav>
+  </header>
+  <div id="globalMessageContainer"></div>
+  <main class="container">
+    <section class="card">
+      <h2>Hall Management</h2>
+
+      <div class="grid">
+        <div>
+          <label for="hallId">Hall ID</label>
+          <input type="text" id="hallId" placeholder="Hall ID (UUID for update)" />
+          <label for="hallName">Hall name</label>
+          <input type="text" id="hallName" placeholder="Hall name" />
+          <label for="hallDesc">Description</label>
+          <input type="text" id="hallDesc" placeholder="Description" />
+          <label for="hallLocation">Location</label>
+          <input type="text" id="hallLocation" placeholder="Location" />
+          <label for="hallCapacity">Capacity</label>
+          <input type="number" id="hallCapacity" placeholder="Capacity" />
+          <label><input type="checkbox" id="hasProjector" /> Has projector</label>
+          <label><input type="checkbox" id="hasAc" /> Has AC</label>
+          <label><input type="checkbox" id="hasWhiteboard" /> Has whiteboard</label>
+
+          <div class="actions">
+            <button id="saveHallBtn" type="button" onclick="saveHall()">Save Hall</button>
+            <button id="updateHallBtn" type="button" onclick="updateHall()">Update Hall</button>
+            <button type="button" onclick="getAllHalls()">Load All Halls</button>
+          </div>
+        </div>
+
+        <div>
+          <label for="searchName">Search by name</label>
+          <input type="text" id="searchName" placeholder="Search by name" />
+          <label for="searchCapacity">Search capacity less than or equal to</label>
+          <input type="number" id="searchCapacity" placeholder="Search capacity ≤" />
+          <div class="actions">
+            <button type="button" onclick="searchHallByName()">Search Name</button>
+            <button type="button" onclick="searchHallByCapacity()">Search Capacity</button>
+          </div>
+
+          <h3>Advanced Search</h3>
+          <label for="advName">Advanced name</label>
+          <input type="text" id="advName" placeholder="Name or all" />
+          <label for="advCapacity">Advanced capacity</label>
+          <input type="number" id="advCapacity" placeholder="Capacity or 0" />
+          <label><input type="checkbox" id="advProjector" /> Has projector</label>
+          <label><input type="checkbox" id="advAc" /> Has AC</label>
+          <label><input type="checkbox" id="advWhiteboard" /> Has whiteboard</label>
+          <div class="actions">
+            <button type="button" onclick="advancedSearch()">Advanced Search</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="hallsList" style="margin-top: 16px;">Loading...</div>
+
+      <div style="margin-top: 16px; overflow-x: auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Description</th>
+              <th>Location</th>
+              <th>Capacity</th>
+              <th>Projector</th>
+              <th>AC</th>
+              <th>Whiteboard</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="hallsTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+  <script src="js/auth.js"></script>
+  <script src="js/halls.js"></script>
+</body>
+</html>
