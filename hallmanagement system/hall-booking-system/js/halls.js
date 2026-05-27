@@ -61,7 +61,7 @@ async function saveHall() {
 // ── UPDATE an existing hall ────────────────────────────────
 async function updateHall() {
   const hallId = (document.getElementById('hallId').value || '').trim();
-  if (!hallId) {
+  if (!isValidIdValue(hallId)) {
     window.showGlobalMessage ? window.showGlobalMessage('Please enter Hall ID before updating.', 'error') : alert('Please enter Hall ID before updating.');
     return;
   }
@@ -86,7 +86,7 @@ async function updateHall() {
 // ── 1. Get one hall by its ID ──────────────────────────────
 async function getHallById(hallId) {
   const cleanId = (hallId || '').toString().trim();
-  if (!cleanId) {
+  if (!isValidIdValue(cleanId)) {
     window.showGlobalMessage ? window.showGlobalMessage('Hall ID is required.', 'error') : alert('Hall ID is required.');
     return null;
   }
@@ -199,6 +199,10 @@ function renderHallsTable(halls) {
 
 // Navigate to bookings page and prefill with hall info
 function bookHall(hallId, hallName) {
+  if (!isValidIdValue(hallId)) {
+    window.showGlobalMessage ? window.showGlobalMessage('Cannot book this hall because Hall ID is missing.', 'error') : alert('Cannot book this hall because Hall ID is missing.');
+    return;
+  }
   const params = new URLSearchParams({ hallId: hallId || '', hallName: hallName || '' });
   window.location.href = `bookings.html?${params.toString()}`;
 }
@@ -234,6 +238,11 @@ function escapeHtml(s){
 
 function escapeJs(value) {
   return String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+function isValidIdValue(id) {
+  const v = String(id || '').trim().toLowerCase();
+  return !!v && v !== 'null' && v !== 'undefined';
 }
 
 window.saveHall = saveHall;

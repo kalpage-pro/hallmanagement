@@ -26,11 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const bf = document.getElementById('bookingFor');
       if (bf && !bf.value) bf.value = `Booking — ${hallName}`;
     }
-    // prefill userId from params or localStorage
-    const paramUser = params.get('userId');
-    const userEl = document.getElementById('userId');
-    if (paramUser && userEl) userEl.value = paramUser;
-    else if (userEl && !userEl.value && localStorage.getItem('user')) userEl.value = localStorage.getItem('user');
+    // user is resolved from login context (localStorage/JWT) in create/update handlers
   } catch (e) {
     // ignore
   }
@@ -47,12 +43,8 @@ async function createBooking() {
   const expectedParticipants = Number(document.getElementById('participants').value || 0);
   const specialRequirements = (document.getElementById('requirements').value || '').trim();
   const hallId = (document.getElementById('hallId').value || '').trim();
-  let userId = (document.getElementById('userId').value || '').trim();
-  if (!userId) {
-    userId = getCurrentUserIdentifier();
-    const userEl = document.getElementById('userId');
-    if (userEl && userId) userEl.value = userId;
-  }
+  const userId = getCurrentUserIdentifier();
+  const userRef = await resolveUserReference();
 
   // basic validation
   if (!reservedDate) {
@@ -66,12 +58,17 @@ async function createBooking() {
     return;
   }
   if (!hallId) {
+    window.showGlobalMessage ? window.showGlobalMessage('Please provide a valid hall ID.', 'error') : alert('Please provide a valid hall ID.');
+    if (btn) btn.disabled = false;
+    return;
+  }
+  if (!isValidIdValue(hallId)) {
     window.showGlobalMessage ? window.showGlobalMessage('Please provide a hall ID.', 'error') : alert('Please provide a hall ID.');
     if (btn) btn.disabled = false;
     return;
   }
   if (!userId) {
-    window.showGlobalMessage ? window.showGlobalMessage('Please provide a user ID.', 'error') : alert('Please provide a user ID.');
+    window.showGlobalMessage ? window.showGlobalMessage('Could not detect logged-in user. Please login again.', 'error') : alert('Could not detect logged-in user. Please login again.');
     if (btn) btn.disabled = false;
     return;
   }
@@ -86,21 +83,15 @@ async function createBooking() {
     createdAt: new Date().toISOString()
   };
 
-  // Try the API with different user-field shapes to handle backend DTO differences.
-  let data = await safeApiCall('/production/booking/save', 'POST', {
-    ...basePayload,
-    requestedBy: { userId }
+  const requestedByVariants = buildRequestedByVariants(userRef, userId);
+  const payloads = [];
+  requestedByVariants.forEach(rb => {
+    payloads.push({ ...basePayload, requestedBy: rb });
+    payloads.push({ ...basePayload, hallId, requestedBy: rb });
+    payloads.push({ ...basePayload, hall: { hallId }, requestedBy: rb });
   });
-  if (!data && isUserNotFoundError()) {
-    data = await safeApiCall('/production/booking/save', 'POST', {
-      ...basePayload,
-      requestedBy: { id: userId }
-    });
-  }
-  if (!data && isUserNotFoundError()) {
-    // Final fallback: backend may resolve user from JWT token.
-    data = await safeApiCall('/production/booking/save', 'POST', basePayload);
-  }
+
+  const data = await tryBookingMutation('/production/booking/save', payloads);
   if (!data) {
     if (btn) btn.disabled = false;
     return;
@@ -124,25 +115,21 @@ async function updateBooking() {
   const expectedParticipants = Number(document.getElementById('participants').value || 0);
   const specialRequirements = (document.getElementById('requirements').value || '').trim();
   const hallId = (document.getElementById('hallId').value || '').trim();
-  let userId = (document.getElementById('userId').value || '').trim();
-  if (!userId) {
-    userId = getCurrentUserIdentifier();
-    const userEl = document.getElementById('userId');
-    if (userEl && userId) userEl.value = userId;
-  }
+  const userId = getCurrentUserIdentifier();
+  const userRef = await resolveUserReference();
 
-  if (!id) {
+  if (!isValidIdValue(id)) {
     window.showGlobalMessage ? window.showGlobalMessage('Please enter booking ID to update.', 'error') : alert('Please enter booking ID to update.');
     if (btn) btn.disabled = false;
     return;
   }
-  if (!hallId) {
+  if (!isValidIdValue(hallId)) {
     window.showGlobalMessage ? window.showGlobalMessage('Please enter Hall ID for booking update.', 'error') : alert('Please enter Hall ID for booking update.');
     if (btn) btn.disabled = false;
     return;
   }
   if (!userId) {
-    window.showGlobalMessage ? window.showGlobalMessage('Please enter User ID for booking update.', 'error') : alert('Please enter User ID for booking update.');
+    window.showGlobalMessage ? window.showGlobalMessage('Could not detect logged-in user. Please login again.', 'error') : alert('Could not detect logged-in user. Please login again.');
     if (btn) btn.disabled = false;
     return;
   }
@@ -159,19 +146,15 @@ async function updateBooking() {
     createdAt: new Date().toISOString()
   };
 
-  let data = await safeApiCall('/production/booking/update', 'POST', {
-    ...basePayload,
-    requestedBy: { userId }
+  const requestedByVariants = buildRequestedByVariants(userRef, userId);
+  const payloads = [];
+  requestedByVariants.forEach(rb => {
+    payloads.push({ ...basePayload, requestedBy: rb });
+    payloads.push({ ...basePayload, hallId, requestedBy: rb });
+    payloads.push({ ...basePayload, hall: { hallId }, requestedBy: rb });
   });
-  if (!data && isUserNotFoundError()) {
-    data = await safeApiCall('/production/booking/update', 'POST', {
-      ...basePayload,
-      requestedBy: { id: userId }
-    });
-  }
-  if (!data && isUserNotFoundError()) {
-    data = await safeApiCall('/production/booking/update', 'POST', basePayload);
-  }
+
+  const data = await tryBookingMutation('/production/booking/update', payloads);
   if (!data) {
     if (btn) btn.disabled = false;
     return;
@@ -185,7 +168,7 @@ async function updateBooking() {
 // ── VERIFY or CANCEL a booking ─────────────────────────────
 async function updateBookingStatus(bookingId, approve) {
   const cleanId = (bookingId || '').toString().trim();
-  if (!cleanId) {
+  if (!isValidIdValue(cleanId)) {
     window.showGlobalMessage ? window.showGlobalMessage('Booking ID is required to change status.', 'error') : alert('Booking ID is required to change status.');
     return;
   }
@@ -218,7 +201,7 @@ async function getAllBookings() {
 // ── 7. Get one booking by ID ───────────────────────────────
 async function getBookingById(bookingId) {
   const cleanId = (bookingId || '').toString().trim();
-  if (!cleanId) {
+  if (!isValidIdValue(cleanId)) {
     window.showGlobalMessage ? window.showGlobalMessage('Booking ID is required.', 'error') : alert('Booking ID is required.');
     return null;
   }
@@ -287,12 +270,114 @@ function getCurrentUserIdentifier() {
   }
 }
 
+let cachedUserReference = null;
+
+async function resolveUserReference() {
+  if (cachedUserReference) return cachedUserReference;
+
+  const candidate = getCurrentUserIdentifier();
+  if (!candidate) return null;
+
+  const endpoints = [
+    `/production/user/get/one/${encodeURIComponent(candidate)}`,
+    `/production/user/get/id/${encodeURIComponent(candidate)}`,
+    `/production/user/get/userId/${encodeURIComponent(candidate)}`,
+    `/production/user/get/username/${encodeURIComponent(candidate)}`,
+    `/production/user/get/nic/${encodeURIComponent(candidate)}`,
+    `/production/user/get/email/${encodeURIComponent(candidate)}`
+  ];
+
+  for (let i = 0; i < endpoints.length; i += 1) {
+    try {
+      const data = await apiCall(endpoints[i], 'GET');
+      const user = pickFirstRecord(data);
+      if (user && (user.id || user.userId || user.uuid)) {
+        cachedUserReference = user;
+        return user;
+      }
+    } catch (e) {
+      // Ignore lookup failures and continue trying fallback endpoints.
+    }
+  }
+
+  return null;
+}
+
+function pickFirstRecord(data) {
+  if (!data) return null;
+  if (Array.isArray(data)) return data[0] || null;
+  if (Array.isArray(data.content)) return data.content[0] || null;
+  if (Array.isArray(data.data)) return data.data[0] || null;
+  if (Array.isArray(data.result)) return data.result[0] || null;
+  return data;
+}
+
+function buildRequestedByVariants(userRef, fallbackUser) {
+  const variants = [];
+  const seen = new Set();
+
+  function add(obj) {
+    const key = JSON.stringify(obj);
+    if (!seen.has(key)) {
+      seen.add(key);
+      variants.push(obj);
+    }
+  }
+
+  if (userRef) {
+    const resolvedId = (userRef.id || userRef.userId || userRef.uuid || '').toString().trim();
+    const resolvedUsername = (userRef.username || userRef.userName || userRef.nic || userRef.email || '').toString().trim();
+
+    if (resolvedId) add({ id: resolvedId });
+    if (resolvedId) add({ userId: resolvedId });
+    if (resolvedId && resolvedUsername) add({ id: resolvedId, userId: resolvedId, username: resolvedUsername });
+    if (resolvedUsername) add({ username: resolvedUsername });
+    if (resolvedUsername) add({ nic: resolvedUsername });
+  }
+
+  const fb = (fallbackUser || '').toString().trim();
+  if (fb) {
+    add({ userId: fb });
+    add({ id: fb, userId: fb });
+    add({ username: fb });
+    add({ nic: fb });
+  }
+
+  return variants;
+}
+
 function isUserNotFoundError() {
   const err = window.lastApiError;
   if (!err) return false;
   const payloadText = typeof err.payload === 'string' ? err.payload : JSON.stringify(err.payload || {});
   const msg = `${err.message || ''} ${payloadText}`.toLowerCase();
   return msg.includes('user not found');
+}
+
+function isNullIdError() {
+  const err = window.lastApiError;
+  if (!err) return false;
+  const payloadText = typeof err.payload === 'string' ? err.payload : JSON.stringify(err.payload || {});
+  const msg = `${err.message || ''} ${payloadText}`.toLowerCase();
+  return msg.includes('given id must not be null');
+}
+
+async function tryBookingMutation(endpoint, payloads) {
+  for (let i = 0; i < payloads.length; i += 1) {
+    const result = await safeApiCall(endpoint, 'POST', payloads[i]);
+    if (result) return result;
+
+    // Stop retrying unless this is a known mapping/id-shape issue.
+    if (!isUserNotFoundError() && !isNullIdError()) {
+      return null;
+    }
+  }
+  return null;
+}
+
+function isValidIdValue(id) {
+  const v = String(id || '').trim().toLowerCase();
+  return !!v && v !== 'null' && v !== 'undefined';
 }
 
 function sampleBookings() {
